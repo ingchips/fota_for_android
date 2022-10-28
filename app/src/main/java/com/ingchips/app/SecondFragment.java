@@ -379,6 +379,15 @@ public class SecondFragment extends Fragment implements OtaLocalFragment.LocalFi
                             binding.otaDataSource.setVisibility(View.VISIBLE);
                             binding.otaTabs.setVisibility(View.VISIBLE);
                         },
+                        isSecure -> {
+                            if (isSecure) {
+                                binding.textLog2.setText("SECURE");
+                                binding.textLog2.setBackgroundColor(Color.parseColor("#2EC770"));
+                            } else {
+                                binding.textLog2.setText("UNSECURE");
+                                binding.textLog2.setBackgroundColor(Color.parseColor("#FF5722"));
+                            }
+                        },
                         f -> getActivity().runOnUiThread(f)
                 );
             }

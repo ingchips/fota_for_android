@@ -51,7 +51,7 @@ public class UpdatePackage {
             while (entry != null) {
                 if (!entry.isDirectory()) {
                     UpdateItem b = new UpdateItem();
-                    b.name = entry.getName();
+                    b.name = entry.getName().substring(entry.getName().lastIndexOf('/') + 1);
                     b.data = new byte[(int) entry.getSize()];
                     byte []bytes = new byte[1024];
                     int len;
@@ -72,9 +72,10 @@ public class UpdatePackage {
             JSONObject obj = new JSONObject(new String(manifest.data));
 
             platform = contents.get(obj.getJSONObject("platform").getString("name"));
-            app = contents.get(obj.getJSONObject("app").getString("name"));
+            if (platform != null)
+                platform.loadAddr = obj.getJSONObject("platform").getInt("address");
 
-            platform.loadAddr = obj.getJSONObject("platform").getInt("address");
+            app = contents.get(obj.getJSONObject("app").getString("name"));
             app.loadAddr = obj.getJSONObject("app").getInt("address");
 
             version = new Updater.ProductVersion(fromArray(obj.getJSONObject("platform").getJSONArray("version")),
@@ -98,6 +99,7 @@ public class UpdatePackage {
             r = true;
         } catch (Exception e)  {
             r = false;
+            System.out.println(e);
         }
 
         return r;

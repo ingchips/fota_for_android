@@ -27,6 +27,7 @@ class Updater
     private var device: BluetoothDevice,
     showProgress: ProgressMsg,
     onPrepared: OnStepListener,
+    updateTopPromptSecure: UpdateTopPromptSecure,
     runUiFunc: GeneralFuncRunner
 ) {
     private val SERVICE_NAME = "INGChips FOTA Service"
@@ -115,16 +116,24 @@ class Updater
         fun run(k: java.lang.Runnable)
     }
 
+    interface UpdateTopPromptSecure {
+        fun update(b: Boolean)
+    }
+
+    private var keyUtils: KeyUtils =
+        KeyUtils()
     private var showProgress: ProgressMsg? = showProgress
     private var ready = false
     private var gatt: BluetoothGatt? = null
     var devVer: ProductVersion? = null
     private var onPrepared: OnStepListener? = onPrepared
+    private var updateTopPromptSecure: UpdateTopPromptSecure? = updateTopPromptSecure
     private var runUi: GeneralFuncRunner? = runUiFunc
     private var driver: BLEDriver? = null
     private var mtu: Int = 0
     private var totalBytes: Int = 0
     private var currentBytes: Int = 0
+    private var isSecureOTA: Boolean = false
     private fun setCurrentBytes(value: Int) {
         currentBytes = value
         updateProgress()
@@ -134,6 +143,14 @@ class Updater
         if ((runUi != null) && (showProgress != null)) {
             runUi!!.run(Runnable {
                     showProgress!!.onProgressMsg(-1, s)
+            })
+        }
+    }
+
+    private fun updateSecurePrompt(b: Boolean) {
+        if ((runUi != null) && (updateTopPromptSecure != null)) {
+            runUi!!.run(Runnable {
+                updateTopPromptSecure!!.update(b);
             })
         }
     }
@@ -177,8 +194,32 @@ class Updater
     fun abort() {
         if (gatt != null) {
             gatt!!.disconnect()
+            gatt!!.close()
             gatt = null
         }
+    }
+
+    /**
+     * Exchange the session key
+     */
+    private suspend fun exchangeKey(chPubKey: BluetoothGattCharacteristic): Boolean {
+        if (!BLEUtil.readCharacteristics(gatt!!, chPubKey)) {
+            return false;
+        }
+        val pk = chPubKey!!.value
+        keyUtils.peer_pk = pk
+
+        val sig = keyUtils.signData(keyUtils.root_sk, keyUtils.session_pk)
+        if (!BLEUtil.writeCharacteristics(gatt!!, chPubKey, keyUtils.session_pk + sig))
+            return false
+        val r = ReadStatus() != OTA_CTRL_STATUS_ERROR
+        if (r)
+        {
+            keyUtils.shared_secret = KeyUtils.getSharedSecret(keyUtils.session_sk, keyUtils.peer_pk);
+            keyUtils.xor_key = KeyUtils.SHA256(keyUtils.shared_secret);
+            keyUtils.is_secure_fota = true;
+        }
+        return r;
     }
 
     private suspend fun prepare0() {
@@ -189,6 +230,7 @@ class Updater
             return
         }
         mtu = BLEUtil.requestMtu(gatt!!,512) - 3
+        Log.i("TAG", "prepare0: mtu: $mtu")
 
         BLEUtil.discover(gatt!!)
 
@@ -210,13 +252,27 @@ class Updater
             return
         }
         if (chars.containsKey(GUID_CHAR_OTA_PUBKEY)) {
-            showMsg("sorry, secure FOTA is WIP")
-            return
+            updateSecurePrompt(true);
+            showMsg("Secure FOTA")
+            isSecureOTA = true;
+        } else {
+            updateSecurePrompt(false);
+            showMsg("Unsecure FOTA")
+            isSecureOTA = false;
         }
 
         driver = BLEDriver(gatt!!, chars[GUID_CHAR_OTA_CTRL]!!, chars[GUID_CHAR_OTA_DATA]!!)
 
         showMsg("$SERVICE_NAME discovered.")
+
+        if (isSecureOTA) {
+            showMsg("exchange session key ...")
+            if (!exchangeKey(chars[GUID_CHAR_OTA_PUBKEY]!!)) {
+                showMsg("failed to exchange session key")
+                return
+            }
+        }
+
         val ver = chars[GUID_CHAR_OTA_VER]
         showMsg("query current version ...")
 
@@ -246,6 +302,14 @@ class Updater
     }
 
     private suspend fun BurnPage(page: ByteArray, address: Long): Boolean {
+        if (isSecureOTA) {
+            return BurnPageSecure(page, address)
+        } else {
+            return BurnPageUnsrcure(page, address)
+        }
+    }
+
+    private suspend fun BurnPageUnsrcure(page: ByteArray, address: Long): Boolean {
         var cmd = byteArrayOf(OTA_CTRL_PAGE_BEGIN, 0, 0, 0, 0)
         Utils.writeU32LE(cmd, 1, address)
         driver!!.WriteCtrl(cmd)
@@ -278,6 +342,50 @@ class Updater
             }
         }
     }
+
+    private suspend fun BurnPageSecure(page: ByteArray, address: Long): Boolean {
+        val sig = keyUtils.signData(keyUtils.session_sk, page)
+
+        keyUtils.encrypt(page)
+
+        var cmd = byteArrayOf(OTA_CTRL_PAGE_BEGIN, 0, 0, 0, 0)
+        Utils.writeU32LE(cmd, 1, address)
+        driver!!.WriteCtrl(cmd)
+        if (!CheckDevStatus()) return false
+        Log.i("Updater", "page start")
+
+        for (i in page.indices step mtu) {
+            var block = mtu
+            if (i + mtu > page.size) block = page.size - i
+            Log.d("BLE", "-->");
+            if (!driver!!.WriteData(page.copyOfRange(i, i + block))) {
+                Log.e("BLE", "FALSE")
+                return false
+            }
+            Log.d("BLE", "done")
+            setCurrentBytes(currentBytes + block)
+            delay(WAIT_BETWEEN_MTU)
+        }
+
+        cmd = ByteArray(5 + sig.size)
+        cmd[0] = OTA_CTRL_PAGE_END
+        Utils.writeU16LE(cmd, 1, page.size.toLong())
+        Utils.writeU16LE(cmd, 3, Utils.crc(page).toLong())
+        arraycopy(sig, 0, cmd, 5, sig.size)
+        driver!!.WriteCtrl(cmd)
+        delay(WAIT_BETWEEN_PAGE)
+
+        Log.i("Updater", "page end")
+
+        while (true) {
+            when (ReadStatus()) {
+                OTA_CTRL_STATUS_OK -> return true
+                OTA_CTRL_STATUS_ERROR -> return false
+                else -> {}
+            }
+        }
+    }
+
 
     private suspend fun BurnFile(item: UpdateItem, pageSize: Int): Boolean {
         for (i in 0 until item.data.size step pageSize) {
@@ -314,6 +422,14 @@ class Updater
     }
 
     private suspend fun BurnMetaData(item: UpdateItem, manualReboot: Boolean): Boolean {
+        if (isSecureOTA) {
+            return BurnMetaDataSecure(item, manualReboot);
+        } else {
+            return BurnMetaDataUnsecure(item, manualReboot);
+        }
+    }
+
+    private suspend fun BurnMetaDataUnsecure(item: UpdateItem, manualReboot: Boolean): Boolean {
         showMsg("burn ${item.name}")
 
         val cmd = ByteArray(1 + item.data.size)
@@ -323,6 +439,27 @@ class Updater
         if (!driver!!.WriteCtrl(cmd)) return false
         return if (manualReboot) CheckDevStatus() else true
     }
+
+    private suspend fun BurnMetaDataSecure(item: UpdateItem, manualReboot: Boolean): Boolean {
+        showMsg("burn ${item.name}")
+
+        val data = ByteArray(item.data.size - 2);
+        arraycopy(item.data, 2, data, 0, data.size)
+
+        var sig = keyUtils.signData(keyUtils.session_sk, data)
+
+        keyUtils.encrypt(data);
+
+        val cmd = ByteArray(1 + sig.size + 2 + data.size)
+        cmd[0] = OTA_CTRL_METADATA
+        arraycopy(sig, 0, cmd, 1, sig.size)
+        Utils.writeU16LE(cmd, 1 + sig.size,  Utils.crc(data).toLong())
+        arraycopy(data, 0, cmd, 1 + sig.size + 2, data.size)
+
+        if (!driver!!.WriteCtrl(cmd)) return false
+        return if (manualReboot) CheckDevStatus() else true
+    }
+
 
     private suspend fun doUpdate2(plan: PlanBuilder.Plan) {
         showMsg("enabling FOTA")
