@@ -230,7 +230,6 @@ class Updater
             return
         }
         mtu = BLEUtil.requestMtu(gatt!!,512) - 3
-        Log.i("TAG", "prepare0: mtu: $mtu")
 
         BLEUtil.discover(gatt!!)
 

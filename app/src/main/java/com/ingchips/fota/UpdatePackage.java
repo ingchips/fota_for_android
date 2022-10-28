@@ -99,7 +99,6 @@ public class UpdatePackage {
             r = true;
         } catch (Exception e)  {
             r = false;
-            System.out.println(e);
         }
 
         return r;
