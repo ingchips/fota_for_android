@@ -121,6 +121,6 @@ public class KeyUtils {
         agreement.init(privKey);
         BigInteger secret = agreement.calculateAgreement(pubKey);
 
-        return secret.toByteArray();
+        return trimToUnsignedByteArray(secret.toByteArray());
     }
 }
