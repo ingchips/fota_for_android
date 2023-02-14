@@ -11,7 +11,6 @@
 
     <string-array name="ota_chip_family">
         <item>ING9188xx/ING9187xx</item>
-        <item>ING9186xx/ING9185xx</item>
         <item>ING9168xx</item>
     </string-array>
 </resources>

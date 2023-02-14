@@ -14,8 +14,7 @@ import java.util.List;
 public class PlanBuilder {
 
     static public final int CHIP_SERIES_ING9187XX_ING9186XX = 0;
-    static public final int CHIP_SERIES_ING9186XX_ING9185XX = 1;
-    static public final int CHIP_SERIES_ING9168XX = 2;
+    static public final int CHIP_SERIES_ING9168XX = 1;
 
     static private class FlashInfo {
         long BaseAddr;
@@ -43,8 +42,7 @@ public class PlanBuilder {
 
     private final static FlashInfo []FlashInfos = {
             new FlashInfo(0x4000, 512 * 1024, 8 * 1024, true),        // ING9188
-            new FlashInfo(0x4000, 256 * 1024, 8 * 1024, true),        // ING9186
-            new FlashInfo(0x02000000, 2048 * 1024, 4 * 1024, false)
+            new FlashInfo(0x02000000, 512 * 1024, 4 * 1024, false)
     };
 
     public static boolean makeFlashProcedure(Plan plan, int chipSeries, boolean isSecure) {
