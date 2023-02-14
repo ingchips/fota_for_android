@@ -46,10 +46,6 @@ public class PlanBuilder {
     };
 
     public static boolean makeFlashProcedure(Plan plan, int chipSeries, boolean isSecure) {
-        if (isSecure) {
-            // TODO: implement Secure FOTA
-            return false;
-        }
         FlashInfo CurrentFlash = FlashInfos[chipSeries];
         plan.manualReboot = CurrentFlash.ManualReboot;
         plan.pageSize = CurrentFlash.PageSize;
