@@ -17,11 +17,15 @@
     <LinearLayout
         android:layout_width="409dp"
         android:layout_height="729dp"
+        android:layout_marginStart="5dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginEnd="5dp"
         android:orientation="vertical"
         android:paddingLeft="8dp"
         android:paddingRight="25dp"
-        tools:layout_editor_absoluteX="1dp"
-        tools:layout_editor_absoluteY="1dp">
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
         <TextView
             android:id="@+id/textLog2"
@@ -41,7 +45,21 @@
             android:id="@+id/chip_family_spinner"
             style="@style/Widget.AppCompat.Spinner.Underlined"
             android:layout_width="match_parent"
-            android:layout_height="36dp" />
+            android:layout_height="48dp" />
+
+        <TextView
+            android:id="@+id/textView6"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Flash Top Address" />
+
+        <EditText
+            android:id="@+id/editFlashTopAddr"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ems="10"
+            android:inputType="textPersonName"
+            android:minHeight="48dp" />
 
         <TableLayout
             android:layout_width="match_parent"

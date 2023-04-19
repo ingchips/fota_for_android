@@ -45,13 +45,19 @@ public class PlanBuilder {
             new FlashInfo(0x02000000, 512 * 1024, 4 * 1024, false)
     };
 
-    public static boolean makeFlashProcedure(Plan plan, int chipSeries, boolean isSecure) {
+    public static long getFlashTopAddress(int chipSeries) {
+        FlashInfo f = FlashInfos[chipSeries];
+        return f.BaseAddr + f.TotalSize;
+    }
+
+    public static boolean makeFlashProcedure(Plan plan, int chipSeries,
+                                             long flashTopAddress) {
         FlashInfo CurrentFlash = FlashInfos[chipSeries];
         plan.manualReboot = CurrentFlash.ManualReboot;
         plan.pageSize = CurrentFlash.PageSize;
 
         int FLASH_PAGE_SIZE = CurrentFlash.PageSize;
-        long FLASH_OTA_DATA_HIGH = CurrentFlash.BaseAddr + CurrentFlash.TotalSize;
+        long FLASH_OTA_DATA_HIGH = flashTopAddress;
 
         for (UpdateItem item : plan.items) {
             int size = ((item.data.length + (FLASH_PAGE_SIZE - 1)) / FLASH_PAGE_SIZE) * FLASH_PAGE_SIZE;

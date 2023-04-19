@@ -10,6 +10,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import android.widget.Toast;
@@ -139,7 +140,7 @@ public class SecondFragment extends Fragment implements OtaLocalFragment.LocalFi
         }
 
         Spinner spinner = binding.chipFamilySpinner;
-        if (!PlanBuilder.makeFlashProcedure(plan, (int)spinner.getSelectedItemId(), false)) {
+        if (!PlanBuilder.makeFlashProcedure(plan, (int)spinner.getSelectedItemId(), getFlashTopAddress())) {
             showMsg("failed to make flash procedure");
             plan = null;
         } else {
@@ -310,6 +311,19 @@ public class SecondFragment extends Fragment implements OtaLocalFragment.LocalFi
                 .show();
     }
 
+    private long getFlashTopAddress() {
+        String s = binding.editFlashTopAddr.getText().toString();
+        return s.startsWith("0x") || s.startsWith("0X") ?
+                Integer.parseInt(s.substring(2), 16)
+                :
+                Integer.parseInt(s);
+    }
+    private void updateFlashTopAddress() {
+        Spinner spinner = binding.chipFamilySpinner;
+        long top = PlanBuilder.getFlashTopAddress((int)spinner.getSelectedItemId());
+        binding.editFlashTopAddr.setText(String.format("0x%08X", top));
+    }
+
     @SuppressLint("ResourceType")
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
@@ -319,6 +333,20 @@ public class SecondFragment extends Fragment implements OtaLocalFragment.LocalFi
         binding.chipFamilySpinner.setAdapter(ArrayAdapter.createFromResource(this.getContext(),
                 R.array.ota_chip_family, android.R.layout.simple_spinner_dropdown_item));
         binding.chipFamilySpinner.setPrompt("Select chip family");
+
+        binding.chipFamilySpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parentView, View selectedItemView, int position, long id) {
+                updateFlashTopAddress();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parentView) {
+                // your code here
+            }
+        });
+
+        updateFlashTopAddress();
 
         if (otaLocal == null) {
             otaLocal = new OtaLocalFragment(this);
