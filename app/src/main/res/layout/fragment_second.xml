@@ -210,6 +210,23 @@
             android:paddingTop="10dp"
             android:paddingEnd="10dp" />
 
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <Button
+                android:id="@+id/btn_activate_sec_app"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="10dp"
+                android:layout_weight="1"
+                android:backgroundTint="@color/purple_500"
+                android:text="Activate Secondary FOTA" />
+        </LinearLayout>
+
         <Space
             android:layout_width="match_parent"
             android:layout_height="10dp" />

@@ -382,6 +382,10 @@ public class SecondFragment extends Fragment implements OtaLocalFragment.LocalFi
             SecondFragment.this.updater.doUpdate(plan);
         });
 
+        binding.btnActivateSecApp.setOnClickListener(__ -> {
+            SecondFragment.this.updater.doSwitchApp();
+        });
+
         PreParsePackage();
         binding.otaDataSource.setVisibility(View.INVISIBLE);
         binding.otaTabs.setVisibility(View.INVISIBLE);

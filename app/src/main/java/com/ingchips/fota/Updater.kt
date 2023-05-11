@@ -496,4 +496,22 @@ class Updater
             doUpdate1(plan)
         }.start()
     }
+
+
+    private fun doSwitchApp1() = runBlocking {
+        try {
+            driver!!.WriteCtrl(byteArrayOf(OTA_CTRL_SWITCH_APP));
+        } catch (e: java.lang.Exception) {
+            showMsg(e.message!!)
+        }
+    }
+
+    /**
+     * switch app
+     */
+    fun doSwitchApp() {
+        Thread {
+            doSwitchApp1()
+        }.start()
+    }
 }
