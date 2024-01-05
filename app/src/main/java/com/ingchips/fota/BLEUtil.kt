@@ -6,6 +6,7 @@ import android.bluetooth.*
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
+import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -175,7 +176,9 @@ class BLEUtil private constructor(private val context: Context) {
         }
         scanCallback = callback
         scanHandler.postDelayed({ stopScan() }, durationMilli)
-        bluetoothLeScanner!!.startScan(leScanCallback)
+        bluetoothLeScanner!!.startScan(null,
+            ScanSettings.Builder().setLegacy(false).build(),
+            leScanCallback)
     }
 
     companion object {
