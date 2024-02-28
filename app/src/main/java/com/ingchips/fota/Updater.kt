@@ -397,7 +397,7 @@ class Updater
             while (err < MAX_RETRY) {
                 showMsg(if (err == 0) "burn ${item.name} ..." else "burn ${item.name} (retry #${err} ...")
 
-                if (BurnPage(page, item.writeAddr + i)) {
+                if (BurnPage(page.clone(), item.writeAddr + i)) {
                     err = 0
                     break
                 }
