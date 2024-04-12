@@ -22,7 +22,7 @@
             android:layout_height="wrap_content"
             android:ems="10"
             android:inputType="textPersonName"
-            android:text="0x26000" />
+            android:text="0x2028000" />
 
         <Space
             android:layout_width="match_parent"
