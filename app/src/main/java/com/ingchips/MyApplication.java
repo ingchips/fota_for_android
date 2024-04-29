@@ -9,6 +9,6 @@ public class MyApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        CrashReport.initCrashReport(getApplicationContext(), "4fbdc243d3", false);
+        CrashReport.initCrashReport(getApplicationContext(), "4fbdc243d3", true);
     }
 }

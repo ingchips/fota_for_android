@@ -176,9 +176,13 @@ class BLEUtil private constructor(private val context: Context) {
         }
         scanCallback = callback
         scanHandler.postDelayed({ stopScan() }, durationMilli)
-        bluetoothLeScanner!!.startScan(null,
-            ScanSettings.Builder().setLegacy(false).build(),
-            leScanCallback)
+        if (Build.VERSION.SDK_INT >=  Build.VERSION_CODES.O) {
+            bluetoothLeScanner!!.startScan(null,
+                ScanSettings.Builder().setLegacy(false).build(),
+                leScanCallback)
+        } else {
+            bluetoothLeScanner!!.startScan(leScanCallback)
+        }
     }
 
     companion object {

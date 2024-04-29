@@ -489,6 +489,7 @@ class Updater
         if (plan.manualReboot)
             driver!!.WriteCtrl(byteArrayOf( OTA_CTRL_REBOOT ))
         //BLEUtil.disconnect(gatt!!.device)
+        abort()
         delay(2000)
         toFirstFragment()
     }
