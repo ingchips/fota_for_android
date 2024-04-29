@@ -176,9 +176,13 @@ class BLEUtil private constructor(private val context: Context) {
         }
         scanCallback = callback
         scanHandler.postDelayed({ stopScan() }, durationMilli)
-        bluetoothLeScanner!!.startScan(null,
-            ScanSettings.Builder().setLegacy(false).build(),
-            leScanCallback)
+        if (Build.VERSION.SDK_INT >=  Build.VERSION_CODES.O) {
+            bluetoothLeScanner!!.startScan(null,
+                ScanSettings.Builder().setLegacy(false).build(),
+                leScanCallback)
+        } else {
+            bluetoothLeScanner!!.startScan(leScanCallback)
+        }
     }
 
     companion object {
@@ -254,15 +258,21 @@ class BLEUtil private constructor(private val context: Context) {
         val isScanning: Boolean
             get() = if (instance != null) instance!!.scanCallback != null else false
 
+        suspend fun reset() {
+            while (!instance!!.chConnStateEvents.isEmpty)
+                instance!!.chConnStateEvents.receive()
+        }
+
         suspend fun connect(device: BluetoothDevice): BluetoothGatt? {
             if (!isReady) return null
             if (!instance!!.checkPermission()) return null
 
-            device.connectGatt(
+            val gatt = device.connectGatt(
                 instance!!.context, false, instance!!.gattCallback)
 
             val r = instance!!.chConnStateEvents.receive()
-            return if (r.newState == BluetoothProfile.STATE_CONNECTED) r.gatt else null
+            //return if (r.newState == BluetoothProfile.STATE_CONNECTED) r.gatt else null
+            return gatt;
         }
 
         suspend fun disconnect(device: BluetoothDevice): Boolean {

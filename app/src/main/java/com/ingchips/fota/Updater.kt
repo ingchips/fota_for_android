@@ -28,7 +28,8 @@ class Updater
     showProgress: ProgressMsg,
     onPrepared: OnStepListener,
     updateTopPromptSecure: UpdateTopPromptSecure,
-    runUiFunc: GeneralFuncRunner
+    runUiFunc: GeneralFuncRunner,
+    navBackToFirstFragment: GeneralFunc
 ) {
     private val SERVICE_NAME = "INGChips FOTA Service"
     private val GUID_SERVICE = "3345c2f0-6f36-45c5-8541-92f56728d5f3"
@@ -120,6 +121,10 @@ class Updater
         fun update(b: Boolean)
     }
 
+    interface GeneralFunc {
+        fun func()
+    }
+
     private var keyUtils: KeyUtils =
         KeyUtils()
     private var showProgress: ProgressMsg? = showProgress
@@ -129,6 +134,7 @@ class Updater
     private var onPrepared: OnStepListener? = onPrepared
     private var updateTopPromptSecure: UpdateTopPromptSecure? = updateTopPromptSecure
     private var runUi: GeneralFuncRunner? = runUiFunc
+    private var navBack: GeneralFunc? = navBackToFirstFragment
     private var driver: BLEDriver? = null
     private var mtu: Int = 0
     private var totalBytes: Int = 0
@@ -150,7 +156,7 @@ class Updater
     private fun updateSecurePrompt(b: Boolean) {
         if ((runUi != null) && (updateTopPromptSecure != null)) {
             runUi!!.run(Runnable {
-                updateTopPromptSecure!!.update(b);
+                updateTopPromptSecure!!.update(b)
             })
         }
     }
@@ -160,6 +166,14 @@ class Updater
             runUi!!.run(Runnable {
                 val prog = 100 * currentBytes  / totalBytes
                 showProgress!!.onProgressMsg(prog, null)
+            })
+        }
+    }
+
+    private fun toFirstFragment() {
+        if ((runUi != null) && (navBack != null)) {
+            runUi!!.run(Runnable {
+                navBack!!.func()
             })
         }
     }
@@ -185,6 +199,8 @@ class Updater
     private fun prepare() = runBlocking {
         // let UI update
         delay(50)
+        BLEUtil.reset()
+        //delay(1000)
         prepare0()
     }
 
@@ -472,7 +488,10 @@ class Updater
         showMsg("FOTA burn complete, reboot...")
         if (plan.manualReboot)
             driver!!.WriteCtrl(byteArrayOf( OTA_CTRL_REBOOT ))
-        BLEUtil.disconnect(gatt!!.device)
+        //BLEUtil.disconnect(gatt!!.device)
+        abort()
+        delay(2000)
+        toFirstFragment()
     }
 
     private fun doUpdate1(plan: PlanBuilder.Plan) = runBlocking {

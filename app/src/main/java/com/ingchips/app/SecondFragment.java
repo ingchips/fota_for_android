@@ -3,6 +3,8 @@ package com.ingchips.app;
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothGatt;
 import android.content.ContentResolver;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
@@ -21,6 +23,7 @@ import androidx.annotation.NonNull;
 import androidx.core.content.res.TypedArrayUtils;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
+import androidx.navigation.fragment.NavHostFragment;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
 import com.google.android.material.tabs.TabLayout;
@@ -40,12 +43,16 @@ import java.io.OutputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 public class SecondFragment extends Fragment implements OtaLocalFragment.LocalFileHander,
         OtaOnlineFragment.OnlineFileHander, OtaAppOnlyFragment.AppFileHander {
+
+    private static final String SHARE_PREFERENCES_NAME = "user_config";
+    private static final String USER_CONFIG_CHIP_FAMILY_KEY = "chipFamilySpinnerPosition";
 
     private FragmentSecondBinding binding;
     FragmentActivity activity;
@@ -338,6 +345,13 @@ public class SecondFragment extends Fragment implements OtaLocalFragment.LocalFi
             @Override
             public void onItemSelected(AdapterView<?> parentView, View selectedItemView, int position, long id) {
                 updateFlashTopAddress();
+
+                if (null != getActivity()) {
+                    getActivity().getSharedPreferences(SHARE_PREFERENCES_NAME, Context.MODE_PRIVATE)
+                            .edit()
+                            .putInt(USER_CONFIG_CHIP_FAMILY_KEY, position)
+                            .apply();
+                }
             }
 
             @Override
@@ -345,6 +359,13 @@ public class SecondFragment extends Fragment implements OtaLocalFragment.LocalFi
                 // your code here
             }
         });
+
+        // Set Default Selection
+        if (null != getActivity()) {
+            int position = getActivity().getSharedPreferences(SHARE_PREFERENCES_NAME, Context.MODE_PRIVATE)
+                    .getInt(USER_CONFIG_CHIP_FAMILY_KEY, 0);
+            binding.chipFamilySpinner.setSelection(position);
+        }
 
         updateFlashTopAddress();
 
@@ -380,6 +401,7 @@ public class SecondFragment extends Fragment implements OtaLocalFragment.LocalFi
 
         binding.btnUpdate.setOnClickListener( __ -> {
             SecondFragment.this.updater.doUpdate(plan);
+            __.setEnabled(false);
         });
 
         binding.btnActivateSecApp.setOnClickListener(__ -> {
@@ -420,7 +442,11 @@ public class SecondFragment extends Fragment implements OtaLocalFragment.LocalFi
                                 binding.textLog2.setBackgroundColor(Color.parseColor("#FF5722"));
                             }
                         },
-                        f -> getActivity().runOnUiThread(f)
+                        f -> getActivity().runOnUiThread(f),
+                        () -> {
+                            NavHostFragment.findNavController(SecondFragment.this)
+                                    .navigate(R.id.action_SecondFragment_to_FirstFragment);
+                        }
                 );
             }
         }).start();
